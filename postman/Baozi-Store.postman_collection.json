@@ -1,0 +1,419 @@
+{
+  "info": {
+    "name": "Baozi Store API",
+    "description": "Execute os pedidos na ordem indicada. Os POSTs guardam os IDs para as consultas e as exclusões.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8080",
+      "type": "string"
+    },
+    {
+      "key": "nomeCliente",
+      "value": "Cliente Demonstração",
+      "type": "string"
+    },
+    {
+      "key": "clienteId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "produtoId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "pedidoId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 Criar Cliente",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/clientes",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"{{nomeCliente}}\",\n  \"clienteDesde\": \"2026-11-23\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+              "if (pm.response.code === 201) {",
+              "    pm.collectionVariables.set(\"clienteId\", pm.response.json().id);",
+              "}",
+              "pm.test(\"Location termina no ID criado\", () => {",
+              "    pm.expect(pm.response.headers.get(\"Location\")).to.match(/\\/\\d+$/);",
+              "});",
+              "pm.test(\"Nome e data do cliente conferem\", () => {",
+              "    pm.expect(pm.response.json().nome).to.eql(pm.collectionVariables.get(\"nomeCliente\"));",
+              "    pm.expect(pm.response.json().clienteDesde).to.eql(\"2026-11-23\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 Criar Produto",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/produtos",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"Baozi de legumes\",\n  \"preco\": 8.5,\n  \"estoque\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+              "if (pm.response.code === 201) {",
+              "    pm.collectionVariables.set(\"produtoId\", pm.response.json().id);",
+              "}",
+              "pm.test(\"Location termina no ID criado\", () => {",
+              "    pm.expect(pm.response.headers.get(\"Location\")).to.match(/\\/\\d+$/);",
+              "});",
+              "pm.test(\"Produto disponível a R$ 8,50\", () => {",
+              "    pm.expect(pm.response.json()).to.include({nome: \"Baozi de legumes\", preco: 8.5, estoque: true});",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 Criar Pedido",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/pedidos",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"clienteId\": {{clienteId}},\n  \"produtoId\": {{produtoId}},\n  \"quantidade\": 3\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+              "if (pm.response.code === 201) {",
+              "    pm.collectionVariables.set(\"pedidoId\", pm.response.json().id);",
+              "}",
+              "pm.test(\"Location termina no ID criado\", () => {",
+              "    pm.expect(pm.response.headers.get(\"Location\")).to.match(/\\/\\d+$/);",
+              "});",
+              "pm.test(\"Pedido vincula cliente, produto e 3 unidades\", () => {",
+              "    pm.expect(pm.response.json()).to.include({",
+              "        clienteId: Number(pm.collectionVariables.get(\"clienteId\")),",
+              "        produtoId: Number(pm.collectionVariables.get(\"produtoId\")),",
+              "        quantidade: 3",
+              "    });",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 Listar clientes",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/clientes"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Lista contém o registro criado\", () => {",
+              "    const ids = pm.response.json().map(registro => registro.id);",
+              "    pm.expect(ids).to.include(Number(pm.collectionVariables.get(\"clienteId\")));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 Listar produtos",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/produtos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Lista contém o registro criado\", () => {",
+              "    const ids = pm.response.json().map(registro => registro.id);",
+              "    pm.expect(ids).to.include(Number(pm.collectionVariables.get(\"produtoId\")));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 Listar pedidos",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/pedidos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Lista contém o registro criado\", () => {",
+              "    const ids = pm.response.json().map(registro => registro.id);",
+              "    pm.expect(ids).to.include(Number(pm.collectionVariables.get(\"pedidoId\")));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 Consultar Cliente",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/clientes/{{clienteId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"ID retornado confere\", () => {",
+              "    pm.expect(pm.response.json().id).to.eql(Number(pm.collectionVariables.get(\"clienteId\")));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 Consultar Produto",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/produtos/{{produtoId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"ID retornado confere\", () => {",
+              "    pm.expect(pm.response.json().id).to.eql(Number(pm.collectionVariables.get(\"produtoId\")));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 Consultar Pedido",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/pedidos/{{pedidoId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"ID retornado confere\", () => {",
+              "    pm.expect(pm.response.json().id).to.eql(Number(pm.collectionVariables.get(\"pedidoId\")));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 Excluir Pedido",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/api/pedidos/{{pedidoId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 204\", () => pm.response.to.have.status(204));",
+              "pm.test(\"Resposta sem corpo\", () => pm.expect(pm.response.text()).to.eql(\"\"));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 Excluir Produto",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/api/produtos/{{produtoId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 204\", () => pm.response.to.have.status(204));",
+              "pm.test(\"Resposta sem corpo\", () => pm.expect(pm.response.text()).to.eql(\"\"));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "12 Excluir Cliente",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/api/clientes/{{clienteId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 204\", () => pm.response.to.have.status(204));",
+              "pm.test(\"Resposta sem corpo\", () => pm.expect(pm.response.text()).to.eql(\"\"));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "13 Verificar exclusão de Pedido",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/pedidos/{{pedidoId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "14 Verificar exclusão de Produto",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/produtos/{{produtoId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "15 Verificar exclusão de Cliente",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/clientes/{{clienteId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
